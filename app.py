@@ -9,15 +9,15 @@ st.set_page_config(page_title="Slovenia Shopping Auditor", page_icon="🛍️", 
 api_key = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=api_key)
 
-# Using Gemini 3 Flash Preview as per your working apps
-# We enable the 'google_search_retrieval' tool so it can browse Spar, Lidl, etc.
+# THE FIX: Changed 'google_search_retrieval' to 'google_search' 
+# and verified 'gemini-3-flash-preview' for 2026.
 model = genai.GenerativeModel(
     model_name='gemini-3-flash-preview',
-    tools=[{"google_search_retrieval": {}}]
+    tools=[{"google_search": {}}]
 )
 
 st.title("🛍️ Slovenia Smart Shopping Auditor")
-st.subheader("May 2026 - Real-Time Price Comparison")
+st.subheader("May 2026 - Live Price Comparison")
 
 st.markdown("""
 Input your list in **Slovenian, English, or Serbian**. 
@@ -26,37 +26,30 @@ I will search live flyers (Spar, Mercator, Lidl, Hofer), calculate subtotals, an
 
 # 3. User Input
 user_list = st.text_area("Your Groceries:", 
-    placeholder="1kg chicken\n500g mletov goveje meso\n1kg bananas\n10 eggs\n...",
+    placeholder="1kg piletine\n500g mletov goveje meso\n1kg bananas\n10 jajc\n...",
     height=250)
 
 if st.button("🚀 Find Best Deals", type="primary"):
     if user_list:
-        with st.spinner("🔍 Chef Gemini is checking the flyers..."):
+        with st.spinner("🔍 Checking flyers and calculating discounts..."):
             try:
+                # We mention the current date (May 7, 2026) to help the AI find the right catalogs
                 prompt = f"""
-                You are a retail assistant in Slovenia. 
-                LIST: {user_list}
+                Today is Thursday, May 7, 2026. 
+                Search live Slovenian retail sites (Spar.si, Mercator.si, Lidl.si, Hofer.si).
                 
-                DATE: Today is Thursday, May 7, 2026. 
+                For this list: {user_list}
                 
-                INSTRUCTIONS:
-                1. Search live websites: Spar.si, Mercator.si, Lidl.si, Hofer.si, and Eurospin.si.
-                2. Find specific prices for these items in Slovenia.
-                3. APPLY MATH: 
-                   - Spar: Apply 10% discount if the subtotal is over €30.
-                   - Mercator: Note 'Pika' discounts.
-                   - Lidl/Hofer: Note 'Akcija' prices.
-                4. CALCULATE total for each store. 
+                1. Identify prices for each item.
+                2. Apply 'Total Bill' logic:
+                   - Spar: If total > 30€, subtract 10%.
+                   - Mercator: Note any 'Pika' member discounts.
+                3. Compare the final totals between all stores.
                 
-                OUTPUT:
-                - Comparison Table: | Item | Spar | Mercator | Lidl | Hofer |
-                - Discount Explanation (e.g. 'You saved €3 at Spar because you hit the €30 limit').
-                - Recommended Store: Which one is the absolute cheapest for this whole basket?
-                
-                Understand Slovenian, English, and Serbian inputs. Provide response in English.
+                Format as a clean table and recommend the single best store to visit.
+                Understand Slo/Eng/Srb mixed inputs. Response in English.
                 """
                 
-                # Generate content with search grounding
                 response = model.generate_content(prompt)
                 
                 st.success("Audit Complete!")
@@ -64,7 +57,7 @@ if st.button("🚀 Find Best Deals", type="primary"):
                 st.markdown(response.text)
                 
             except Exception as e:
+                # This will capture any further tool name mismatches
                 st.error(f"Error: {e}")
-                st.info("Check if your API Key has 'Google Search' enabled in the Google AI Studio settings.")
     else:
         st.warning("Please enter your items first!")
